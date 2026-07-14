@@ -64,6 +64,16 @@ public partial class CrosshairOverlay : Window
     private bool _dragMode;
     private bool _dragging;
 
+    private const double DragHitboxSize = 120;
+    private static readonly Brush HitboxBrush = CreateHitboxBrush();
+
+    private static Brush CreateHitboxBrush()
+    {
+        var b = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
+        b.Freeze();
+        return b;
+    }
+
     public event Action<int, int>? ImageDragged;
 
     public CrosshairOverlay()
@@ -171,6 +181,8 @@ public partial class CrosshairOverlay : Window
         _xform.X = offsetX;
         _xform.Y = offsetY;
 
+        AddDragHitbox(cx, cy);
+
         if (!IsVisible) Show();
     }
 
@@ -203,6 +215,8 @@ public partial class CrosshairOverlay : Window
 
         _xform.X = offsetX;
         _xform.Y = offsetY;
+
+        AddDragHitbox(Width / 2.0, Height / 2.0);
 
         if (!IsVisible) Show();
     }
@@ -273,6 +287,8 @@ public partial class CrosshairOverlay : Window
         _xform.X = 0;
         _xform.Y = 0;
 
+        AddDragHitbox(Width / 2.0 + offsetX, Height / 2.0 + offsetY);
+
         if (!IsVisible) Show();
     }
 
@@ -285,6 +301,21 @@ public partial class CrosshairOverlay : Window
         bi.EndInit();
         bi.Freeze();
         return bi;
+    }
+
+    private void AddDragHitbox(double cx, double cy)
+    {
+        if (!_dragMode) return;
+        var hb = new Border
+        {
+            Width  = DragHitboxSize,
+            Height = DragHitboxSize,
+            Background = HitboxBrush,
+            IsHitTestVisible = true
+        };
+        Canvas.SetLeft(hb, cx - DragHitboxSize / 2.0);
+        Canvas.SetTop(hb, cy - DragHitboxSize / 2.0);
+        OverlayCanvas.Children.Add(hb);
     }
 
     public void SetDragMode(bool on)
