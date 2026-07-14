@@ -545,8 +545,6 @@ public partial class MainWindow : Window
             Height     = 64,
             Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14))
         };
-        RenderOptions.SetEdgeMode(canvas, EdgeMode.Aliased);
-        canvas.SnapsToDevicePixels = true;
         CrDraw.Draw(canvas, 32, 32, 0.5, _s.CrColor, _s.CrOutline, _s.CrOutlineSize, id);
 
         var label = new TextBlock
@@ -832,7 +830,7 @@ public partial class MainWindow : Window
 
     private void RefreshCrosshairOverlay()
     {
-        if (_dragMode && (!_crosshairOn || _s.CrTemplate != "image"))
+        if (_dragMode && (!_crosshairOn || string.IsNullOrEmpty(_s.CrTemplate) || _s.CrFollowCursor))
         {
             _dragMode = false;
             _crOverlay?.SetDragMode(false);
@@ -2873,7 +2871,8 @@ public partial class MainWindow : Window
 
     private void DragMode_Click(object s, RoutedEventArgs e)
     {
-        if (_s.CrTemplate != "image") return;
+        if (string.IsNullOrEmpty(_s.CrTemplate)) return;
+        if (_s.CrFollowCursor) return;
         _dragMode = !_dragMode;
         _crOverlay?.SetDragMode(_dragMode);
         DragModeBtn.Content = _dragMode ? "CLICK TO FINISH" : "DRAG TO POSITION";
@@ -2890,7 +2889,7 @@ public partial class MainWindow : Window
         _s.CrOffsetX = Math.Clamp(dx, -MaxOffsetX, MaxOffsetX);
         _s.CrOffsetY = Math.Clamp(dy, -MaxOffsetY, MaxOffsetY);
         UpdatePositionLabels();
-        RefreshCrosshairOverlay();
+        if (_dragMode) RefreshCrosshairOverlay();
     }
 
     private void InitKeybindsPanel()

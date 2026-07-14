@@ -75,9 +75,6 @@ public partial class CrosshairOverlay : Window
         Top    = 0;
         OverlayCanvas.RenderTransform = _xform;
 
-        RenderOptions.SetEdgeMode(OverlayCanvas, EdgeMode.Aliased);
-        OverlayCanvas.SnapsToDevicePixels = true;
-
         SourceInitialized += (_, _) =>
         {
             _hwnd = new WindowInteropHelper(this).Handle;
@@ -351,11 +348,7 @@ public partial class CrosshairOverlay : Window
                 byColor[hex] = group;
             }
 
-            group.Children.Add(new RectangleGeometry(new Rect(
-                Math.Round(ox + col * cell),
-                Math.Round(oy + row * cell),
-                Math.Ceiling(cell),
-                Math.Ceiling(cell))));
+            group.Children.Add(new RectangleGeometry(new Rect(ox + col * cell, oy + row * cell, cell, cell)));
         }
 
         foreach (var (hex, group) in byColor)
@@ -634,14 +627,12 @@ internal static class CrDraw
         {
             if (outline)
             {
-                var pOut = new Polygon { Stroke = black, StrokeThickness = outSize * 2, Fill = black, SnapsToDevicePixels = true };
-                RenderOptions.SetEdgeMode(pOut, EdgeMode.Aliased);
-                foreach (var p in pts) pOut.Points.Add(new Point(Math.Round(p.X), Math.Round(p.Y)));
+                var pOut = new Polygon { Stroke = black, StrokeThickness = outSize * 2, Fill = black };
+                foreach (var p in pts) pOut.Points.Add(p);
                 c.Children.Add(pOut);
             }
-            var poly = new Polygon { Fill = brush, StrokeThickness = 0, SnapsToDevicePixels = true };
-            RenderOptions.SetEdgeMode(poly, EdgeMode.Aliased);
-            foreach (var p in pts) poly.Points.Add(new Point(Math.Round(p.X), Math.Round(p.Y)));
+            var poly = new Polygon { Fill = brush, StrokeThickness = 0 };
+            foreach (var p in pts) poly.Points.Add(p);
             c.Children.Add(poly);
         }
     }
@@ -690,14 +681,12 @@ internal static class CrDraw
 
         if (outline)
         {
-            var pOut = new Polygon { Stroke = black, StrokeThickness = Thick(st + outSize * 2), Fill = Brushes.Transparent, SnapsToDevicePixels = true };
-            RenderOptions.SetEdgeMode(pOut, EdgeMode.Aliased);
-            foreach (var p in pts) pOut.Points.Add(new Point(Math.Round(p.X), Math.Round(p.Y)));
+            var pOut = new Polygon { Stroke = black, StrokeThickness = Thick(st + outSize * 2), Fill = Brushes.Transparent };
+            foreach (var p in pts) pOut.Points.Add(p);
             c.Children.Add(pOut);
         }
-        var poly = new Polygon { Stroke = brush, StrokeThickness = st, Fill = Brushes.Transparent, SnapsToDevicePixels = true };
-        RenderOptions.SetEdgeMode(poly, EdgeMode.Aliased);
-        foreach (var p in pts) poly.Points.Add(new Point(Math.Round(p.X), Math.Round(p.Y)));
+        var poly = new Polygon { Stroke = brush, StrokeThickness = st, Fill = Brushes.Transparent };
+        foreach (var p in pts) poly.Points.Add(p);
         c.Children.Add(poly);
     }
 
@@ -717,14 +706,12 @@ internal static class CrDraw
 
         if (outline)
         {
-            var pOut = new Polygon { Stroke = black, StrokeThickness = Thick(st + outSize * 2), Fill = Brushes.Transparent, SnapsToDevicePixels = true };
-            RenderOptions.SetEdgeMode(pOut, EdgeMode.Aliased);
-            foreach (var p in pts) pOut.Points.Add(new Point(Math.Round(p.X), Math.Round(p.Y)));
+            var pOut = new Polygon { Stroke = black, StrokeThickness = Thick(st + outSize * 2), Fill = Brushes.Transparent };
+            foreach (var p in pts) pOut.Points.Add(p);
             c.Children.Add(pOut);
         }
-        var poly = new Polygon { Stroke = brush, StrokeThickness = st, Fill = Brushes.Transparent, SnapsToDevicePixels = true };
-        RenderOptions.SetEdgeMode(poly, EdgeMode.Aliased);
-        foreach (var p in pts) poly.Points.Add(new Point(Math.Round(p.X), Math.Round(p.Y)));
+        var poly = new Polygon { Stroke = brush, StrokeThickness = st, Fill = Brushes.Transparent };
+        foreach (var p in pts) poly.Points.Add(p);
         c.Children.Add(poly);
     }
 
@@ -732,27 +719,22 @@ internal static class CrDraw
 
     static void PutLine(Canvas c, double x1, double y1, double x2, double y2, Brush stroke, double thick)
     {
-        var line = new Line
+        c.Children.Add(new Line
         {
-            X1 = Math.Round(x1), Y1 = Math.Round(y1),
-            X2 = Math.Round(x2), Y2 = Math.Round(y2),
+            X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
             Stroke              = stroke,
             StrokeThickness     = Thick(thick),
             StrokeStartLineCap  = PenLineCap.Square,
-            StrokeEndLineCap    = PenLineCap.Square,
-            SnapsToDevicePixels = true
-        };
-        RenderOptions.SetEdgeMode(line, EdgeMode.Aliased);
-        c.Children.Add(line);
+            StrokeEndLineCap    = PenLineCap.Square
+        });
     }
 
     static void PutEllipseFilled(Canvas c, double cx, double cy, double r, Brush fill)
     {
         r = System.Math.Max(0.5, r);
-        var e = new Ellipse { Width = r * 2, Height = r * 2, Fill = fill, SnapsToDevicePixels = true };
-        RenderOptions.SetEdgeMode(e, EdgeMode.Aliased);
-        Canvas.SetLeft(e, Math.Round(cx - r));
-        Canvas.SetTop(e,  Math.Round(cy - r));
+        var e = new Ellipse { Width = r * 2, Height = r * 2, Fill = fill };
+        Canvas.SetLeft(e, cx - r);
+        Canvas.SetTop(e,  cy - r);
         c.Children.Add(e);
     }
 
@@ -765,12 +747,10 @@ internal static class CrDraw
             Height          = r * 2,
             Stroke          = stroke,
             StrokeThickness = Thick(System.Math.Min(thick, r)),
-            Fill            = Brushes.Transparent,
-            SnapsToDevicePixels = true
+            Fill            = Brushes.Transparent
         };
-        RenderOptions.SetEdgeMode(e, EdgeMode.Aliased);
-        Canvas.SetLeft(e, Math.Round(cx - r));
-        Canvas.SetTop(e,  Math.Round(cy - r));
+        Canvas.SetLeft(e, cx - r);
+        Canvas.SetTop(e,  cy - r);
         c.Children.Add(e);
     }
 
@@ -778,10 +758,9 @@ internal static class CrDraw
     {
         hw = System.Math.Max(0.5, hw);
         hh = System.Math.Max(0.5, hh);
-        var r = new Rectangle { Width = hw * 2, Height = hh * 2, Fill = fill, SnapsToDevicePixels = true };
-        RenderOptions.SetEdgeMode(r, EdgeMode.Aliased);
-        Canvas.SetLeft(r, Math.Round(cx - hw));
-        Canvas.SetTop(r,  Math.Round(cy - hh));
+        var r = new Rectangle { Width = hw * 2, Height = hh * 2, Fill = fill };
+        Canvas.SetLeft(r, cx - hw);
+        Canvas.SetTop(r,  cy - hh);
         c.Children.Add(r);
     }
 }
