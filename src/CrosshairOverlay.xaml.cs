@@ -2,10 +2,12 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace CrosshairY;
 
@@ -54,9 +56,15 @@ public partial class CrosshairOverlay : Window
     private IntPtr _hwnd;
     private WinEventDelegate? _winEventProc;
     private IntPtr _winEventHook;
+    private DispatcherTimer? _topmostTimer;
 
     private const int CursorSize = 256;
     private readonly TranslateTransform _xform = new();
+
+    private bool _dragMode;
+    private bool _dragging;
+
+    public event Action<int, int>? ImageDragged;
 
     public CrosshairOverlay()
     {
@@ -78,21 +86,25 @@ public partial class CrosshairOverlay : Window
 
             ReassertTopmost();
 
-            // Re-assert topmost only when another app takes the foreground
-            // (e.g. switching to a fullscreen game). Polling SetWindowPos on a
-            // layered window every frame caused the crosshair to flicker, so we
-            // react to foreground changes instead. SKIPOWNPROCESS keeps our own
-            // windows (main UI, color picker) from triggering it.
             _winEventProc = (_, _, _, _, _, _, _) => ReassertTopmost();
             _winEventHook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
                 IntPtr.Zero, _winEventProc, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+
+            _topmostTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
+            _topmostTimer.Tick += (_, _) => ReassertTopmost();
+            _topmostTimer.Start();
         };
 
         Closed += (_, _) =>
         {
             CursorReplacer.Restore();
+            _topmostTimer?.Stop();
             if (_winEventHook != IntPtr.Zero) UnhookWinEvent(_winEventHook);
         };
+
+        OverlayCanvas.MouseLeftButtonDown += DragMode_MouseDown;
+        OverlayCanvas.MouseMove           += DragMode_MouseMove;
+        OverlayCanvas.MouseLeftButtonUp   += DragMode_MouseUp;
     }
 
     private void ReassertTopmost()
@@ -193,6 +205,124 @@ public partial class CrosshairOverlay : Window
         _xform.Y = offsetY;
 
         if (!IsVisible) Show();
+    }
+
+    public void UpdateImageCrosshair(string fullPath, int size, int opacity, int offsetX, int offsetY, bool follow)
+    {
+        if (string.IsNullOrEmpty(fullPath) || !System.IO.File.Exists(fullPath))
+        {
+            CursorReplacer.Restore();
+            OverlayCanvas.Children.Clear();
+            if (IsVisible) Hide();
+            return;
+        }
+
+        if (follow)
+        {
+            var bmp = RenderCursorBitmap(c =>
+            {
+                try
+                {
+                    var bi = LoadBitmap(fullPath);
+                    double scale = size / 100.0;
+                    double w = bi.PixelWidth * scale;
+                    double h = bi.PixelHeight * scale;
+                    var img = new System.Windows.Controls.Image { Source = bi, Width = w, Height = h };
+                    Canvas.SetLeft(img, (CursorSize - w) / 2.0);
+                    Canvas.SetTop(img, (CursorSize - h) / 2.0);
+                    c.Children.Add(img);
+                }
+                catch { }
+            }, opacity);
+            ApplyCursor(bmp, offsetX, offsetY);
+            OverlayCanvas.Children.Clear();
+            if (IsVisible) Hide();
+            return;
+        }
+
+        CursorReplacer.Restore();
+
+        OverlayCanvas.Children.Clear();
+        OverlayCanvas.Opacity = opacity / 100.0;
+
+        try
+        {
+            var bi = LoadBitmap(fullPath);
+            double scale = size / 100.0;
+            double w = bi.PixelWidth * scale;
+            double h = bi.PixelHeight * scale;
+
+            var img = new System.Windows.Controls.Image
+            {
+                Source = bi,
+                Width = w,
+                Height = h,
+                Stretch = Stretch.Fill,
+                IsHitTestVisible = false
+            };
+
+            double cx = Width / 2.0 + offsetX;
+            double cy = Height / 2.0 + offsetY;
+
+            Canvas.SetLeft(img, cx - w / 2.0);
+            Canvas.SetTop(img, cy - h / 2.0);
+            OverlayCanvas.Children.Add(img);
+        }
+        catch { }
+
+        _xform.X = 0;
+        _xform.Y = 0;
+
+        if (!IsVisible) Show();
+    }
+
+    private static BitmapImage LoadBitmap(string path)
+    {
+        var bi = new BitmapImage();
+        bi.BeginInit();
+        bi.CacheOption = BitmapCacheOption.OnLoad;
+        bi.UriSource = new Uri(path);
+        bi.EndInit();
+        bi.Freeze();
+        return bi;
+    }
+
+    public void SetDragMode(bool on)
+    {
+        _dragMode = on;
+        if (_hwnd != IntPtr.Zero)
+        {
+            int ex = GetWindowLong(_hwnd, GWL_EXSTYLE);
+            if (on) ex &= ~WS_EX_TRANSPARENT;
+            else    ex |= WS_EX_TRANSPARENT;
+            SetWindowLong(_hwnd, GWL_EXSTYLE, ex);
+        }
+        OverlayCanvas.Cursor = on ? Cursors.SizeAll : Cursors.None;
+    }
+
+    private void DragMode_MouseDown(object s, MouseButtonEventArgs e)
+    {
+        if (!_dragMode) return;
+        _dragging = true;
+        OverlayCanvas.CaptureMouse();
+        DragMode_MouseMove(s, e);
+        e.Handled = true;
+    }
+
+    private void DragMode_MouseMove(object s, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_dragging) return;
+        var p = e.GetPosition(this);
+        int x = (int)(p.X - Width / 2.0);
+        int y = (int)(p.Y - Height / 2.0);
+        ImageDragged?.Invoke(x, y);
+    }
+
+    private void DragMode_MouseUp(object s, MouseButtonEventArgs e)
+    {
+        if (!_dragging) return;
+        _dragging = false;
+        if (OverlayCanvas.IsMouseCaptured) OverlayCanvas.ReleaseMouseCapture();
     }
 
     private static void DrawCustomInto(Canvas canvas, List<string> pixels, int gridSize, double scale, double cx, double cy)

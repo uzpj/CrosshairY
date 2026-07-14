@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace CrosshairY;
@@ -22,6 +23,9 @@ public partial class MainWindow : Window
     private Action<string>? _bindingCallback;
     private Button?         _bindingBtn;
 
+    private bool            _slotBindingMode;
+    private bool            _dragMode;
+
     private double           _scrollTarget;
     private DispatcherTimer? _scrollTimer;
 
@@ -29,7 +33,7 @@ public partial class MainWindow : Window
 
     private CrosshairOverlay? _crOverlay;
 
-    public const string Version = "1.0.7";
+    public const string Version = "1.0.8";
     private string? _updateExeUrl;
     private string? _updateHtmlUrl;
     private long    _updateExeSize;
@@ -71,6 +75,9 @@ public partial class MainWindow : Window
 
     private static readonly string CustomTemplatesFile =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CrosshairY", "custom_crosshairs.json");
+
+    private static readonly string ImagesDir =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CrosshairY", "Images");
 
     private static readonly (string id, string name)[] CrTemplates =
     {
@@ -382,6 +389,7 @@ public partial class MainWindow : Window
             };
             MainGrid.BeginAnimation(OpacityProperty, fadeIn);
             _crOverlay = new CrosshairOverlay();
+            _crOverlay.ImageDragged += OnImageDragged;
             LoadSettings();
             InitSettingsPanel();
             InitGamesPanel();
@@ -390,6 +398,8 @@ public partial class MainWindow : Window
             TryLoadLastUsed();
             InitCrosshairsPanel();
             InitBuilderPanel();
+            InitImagePanel();
+            InitKeybindsPanel();
             UpdateMonitorButtons();
             ApplyMonitorToOverlay();
             VersionLabel.Text = $" v{Version}";
@@ -511,6 +521,7 @@ public partial class MainWindow : Window
         UpdateTemplateTileSelection();
         UpdateColorSwatchSelection();
         InitCustomTemplatesPanel();
+        InitImagePanel();
 
         CrOutlineToggle.IsChecked   = _s.CrOutline;
         CrOutlineSizeSlider.Value   = _s.CrOutlineSize;
@@ -569,6 +580,7 @@ public partial class MainWindow : Window
             _activeCustomName = null;
             UpdateTemplateTileSelection();
             InitCustomTemplatesPanel();
+            InitImagePanel();
             RefreshCrosshairOverlay();
         };
 
@@ -803,6 +815,7 @@ public partial class MainWindow : Window
 
         UpdateTemplateTileSelection();
         InitCustomTemplatesPanel();
+        InitImagePanel();
         RefreshCrosshairOverlay();
     }
 
@@ -817,13 +830,26 @@ public partial class MainWindow : Window
 
     private void RefreshCrosshairOverlay()
     {
+        if (_dragMode && (!_crosshairOn || _s.CrTemplate != "image"))
+        {
+            _dragMode = false;
+            _crOverlay?.SetDragMode(false);
+            if (DragModeBtn != null)
+            {
+                DragModeBtn.Content = "DRAG TO POSITION";
+                DragModeBtn.Background = (Brush)FindResource("BgBtn");
+            }
+        }
+
         if (!_crosshairOn)
         {
             _crOverlay?.Conceal();
             return;
         }
 
-        if (_s.CrTemplate == "custom")
+        if (_s.CrTemplate == "image")
+            _crOverlay?.UpdateImageCrosshair(ImageFullPath(_s.CrImagePath), _s.CrSize, _s.CrOpacity, _s.CrOffsetX, _s.CrOffsetY, _s.CrFollowCursor);
+        else if (_s.CrTemplate == "custom")
             _crOverlay?.UpdateCustomCrosshair(_s.CrCustomPixels, _s.CrSize, _s.CrOpacity, _s.CrBuilderSize, _s.CrOffsetX, _s.CrOffsetY, _s.CrFollowCursor);
         else
             _crOverlay?.UpdateCrosshair(_s.CrTemplate, _s.CrColor, _s.CrOutline, _s.CrOutlineSize, _s.CrSize, _s.CrOpacity, _s.CrGap, _s.CrOffsetX, _s.CrOffsetY, _s.CrFollowCursor);
@@ -1322,6 +1348,7 @@ public partial class MainWindow : Window
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
+        KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(CrosshairsPanel);
         AnimateNavSelect(BtnCrosshairs);
@@ -1336,6 +1363,7 @@ public partial class MainWindow : Window
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
+        KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(SettingsPanel);
         AnimateNavSelect(BtnSettings);
@@ -1350,6 +1378,7 @@ public partial class MainWindow : Window
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SettingsPanel.Visibility   = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
+        KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(SupportPanel);
         AnimateNavSelect(BtnSupport);
@@ -1364,11 +1393,28 @@ public partial class MainWindow : Window
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SettingsPanel.Visibility   = Visibility.Collapsed;
         SupportPanel.Visibility    = Visibility.Collapsed;
+        KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(BuilderPanel);
         AnimateNavSelect(BtnBuilder);
         _scrollTarget = 0;
         MainScrollViewer.ScrollToTop();
+    }
+
+    private void BtnKeybinds_Click(object s, RoutedEventArgs e)
+    {
+        KeybindsPanel.Visibility   = Visibility.Visible;
+        CrosshairsPanel.Visibility = Visibility.Collapsed;
+        ProfilesPanel.Visibility   = Visibility.Collapsed;
+        SettingsPanel.Visibility   = Visibility.Collapsed;
+        SupportPanel.Visibility    = Visibility.Collapsed;
+        BuilderPanel.Visibility    = Visibility.Collapsed;
+        GamesPanel.Visibility      = Visibility.Collapsed;
+        FadeInPanel(KeybindsPanel);
+        AnimateNavSelect(BtnKeybinds);
+        _scrollTarget = 0;
+        MainScrollViewer.ScrollToTop();
+        BuildSlotList();
     }
 
     private void SocialLink_Click(object s, RoutedEventArgs e)
@@ -1418,6 +1464,12 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (_slotBindingMode)
+        {
+            Dispatcher.Invoke(() => FinishSlotBinding(key));
+            return;
+        }
+
         if (key == _s.ProofKey)
             Dispatcher.Invoke(ToggleCaptureHide);
 
@@ -1429,6 +1481,10 @@ public partial class MainWindow : Window
 
         if (!string.IsNullOrEmpty(_s.FollowKey) && key == _s.FollowKey)
             Dispatcher.Invoke(ToggleFollowViaHotkey);
+
+        var slot = _s.CrSlots.FirstOrDefault(s => s.Key == key);
+        if (slot != null)
+            Dispatcher.Invoke(() => ApplySlot(slot));
     }
 
     private bool _crosshairOn = true;
@@ -1488,6 +1544,7 @@ public partial class MainWindow : Window
         SettingsPanel.Visibility   = Visibility.Collapsed;
         SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
+        KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(ProfilesPanel);
         AnimateNavSelect(BtnProfiles);
@@ -1504,6 +1561,7 @@ public partial class MainWindow : Window
         SettingsPanel.Visibility   = Visibility.Collapsed;
         SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
+        KeybindsPanel.Visibility   = Visibility.Collapsed;
         FadeInPanel(GamesPanel);
         AnimateNavSelect(BtnGames);
         _scrollTarget = 0;
@@ -1608,7 +1666,7 @@ public partial class MainWindow : Window
 
     private UIElement BuildProfileThumb(string path)
     {
-        string template = "", color = "#ffffff";
+        string template = "", color = "#ffffff", imagePath = "";
         bool   outline = false;
         int    outlineSize = 1, gap = 3, builderSize = 15;
         var    pixels = new List<string>();
@@ -1619,6 +1677,7 @@ public partial class MainWindow : Window
             var r = doc.RootElement;
             if (r.TryGetProp("cr_template", out var v)) template = v;
             if (r.TryGetProp("cr_color",    out v))     color    = v;
+            if (r.TryGetProp("cr_image_path", out v))   imagePath = v;
             if (r.TryGetProperty("cr_outline",      out var jv) && jv.ValueKind == JsonValueKind.True) outline = true;
             if (r.TryGetProperty("cr_outline_size", out jv) && jv.TryGetInt32(out var i)) outlineSize = i;
             if (r.TryGetProperty("cr_gap",          out jv) && jv.TryGetInt32(out i))     gap         = i;
@@ -1638,6 +1697,8 @@ public partial class MainWindow : Window
 
         if (template == "custom")
             DrawThumbCustom(canvas, pixels, builderSize);
+        else if (template == "image" && !string.IsNullOrEmpty(imagePath))
+            DrawThumbImage(canvas, imagePath);
         else if (!string.IsNullOrEmpty(template))
             CrDraw.Draw(canvas, 21, 21, 0.34, color, outline, outlineSize, template, gap);
 
@@ -1678,6 +1739,39 @@ public partial class MainWindow : Window
             Canvas.SetTop(rect,  oy + row * cell);
             canvas.Children.Add(rect);
         }
+    }
+
+    private static void DrawThumbImage(Canvas canvas, string imageFileName)
+    {
+        var fullPath = ImageFullPath(imageFileName);
+        if (!File.Exists(fullPath)) return;
+        try
+        {
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(fullPath);
+            bi.EndInit();
+            bi.Freeze();
+
+            double maxDim = 38.0;
+            double scale = System.Math.Min(maxDim / bi.PixelWidth, maxDim / bi.PixelHeight);
+            double w = bi.PixelWidth * scale;
+            double h = bi.PixelHeight * scale;
+
+            var img = new System.Windows.Controls.Image { Source = bi, Width = w, Height = h, Stretch = Stretch.Fill };
+            Canvas.SetLeft(img, (42 - w) / 2.0);
+            Canvas.SetTop(img, (42 - h) / 2.0);
+            canvas.Children.Add(img);
+        }
+        catch { }
+    }
+
+    private static string ImageFullPath(string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName)) return "";
+        if (Path.IsPathRooted(fileName)) return fileName;
+        return Path.Combine(ImagesDir, fileName);
     }
 
     private void DuplicateProfile(string path)
@@ -1798,6 +1892,7 @@ public partial class MainWindow : Window
             cr_follow_cursor = _s.CrFollowCursor,
             cr_custom_pixels = _s.CrCustomPixels,
             cr_builder_size  = _s.CrBuilderSize,
+            cr_image_path    = _s.CrImagePath,
             proof_key        = _s.ProofKey,
             cycle_key        = _s.CycleKey
         };
@@ -1832,7 +1927,8 @@ public partial class MainWindow : Window
                 auto_switch_games    = _s.AutoSwitchGames,
                 auto_revert_profile  = _s.AutoRevertProfile,
                 game_profiles        = _s.GameProfiles,
-                custom_games         = _s.CustomGames
+                custom_games         = _s.CustomGames,
+                cr_slots             = _s.CrSlots
             };
             File.WriteAllText(SettingsFile, JsonSerializer.Serialize(cfg));
         }
@@ -1869,6 +1965,20 @@ public partial class MainWindow : Window
                     if (el.GetString() is { } ex) _s.CustomGames.Add(ex);
             }
 
+            if (r.TryGetProperty("cr_slots", out var cs) && cs.ValueKind == JsonValueKind.Array)
+            {
+                _s.CrSlots.Clear();
+                foreach (var el in cs.EnumerateArray())
+                {
+                    try
+                    {
+                        var slot = System.Text.Json.JsonSerializer.Deserialize<CrosshairSlot>(el.GetRawText());
+                        if (slot != null) _s.CrSlots.Add(slot);
+                    }
+                    catch { }
+                }
+            }
+
             if (UpdateNotifyToggle != null) UpdateNotifyToggle.IsChecked = _s.UpdateNotifications;
             if (ToggleKeyBtn != null) ToggleKeyBtn.Content = string.IsNullOrEmpty(_s.ToggleKey) ? "NONE" : DisplayKey(_s.ToggleKey);
             if (FollowKeyBtn != null) FollowKeyBtn.Content = string.IsNullOrEmpty(_s.FollowKey) ? "NONE" : DisplayKey(_s.FollowKey);
@@ -1897,6 +2007,9 @@ public partial class MainWindow : Window
             if (r.TryGetProperty("cr_offset_y",     out jv) && jv.TryGetInt32(out i))     _s.CrOffsetY     = Math.Clamp(i, -MaxOffsetY, MaxOffsetY);
             if (r.TryGetProperty("cr_follow_cursor", out jv) && jv.ValueKind == JsonValueKind.True)  _s.CrFollowCursor = true;
             if (r.TryGetProperty("cr_follow_cursor", out jv) && jv.ValueKind == JsonValueKind.False) _s.CrFollowCursor = false;
+
+            if (r.TryGetProp("cr_image_path", out v))
+                _s.CrImagePath = v;
 
             if (r.TryGetProp("proof_key", out v) && !string.IsNullOrEmpty(v))
             {
@@ -2591,6 +2704,383 @@ public partial class MainWindow : Window
             btn.Background = sz == _builderSize
                 ? new SolidColorBrush(Color.FromRgb(0x2a, 0x2a, 0x2a))
                 : new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14));
+        }
+    }
+
+    private void InitImagePanel()
+    {
+        if (ImagePanel == null) return;
+        ImagePanel.Children.Clear();
+        try
+        {
+            Directory.CreateDirectory(ImagesDir);
+            foreach (var f in Directory.GetFiles(ImagesDir)
+                         .Where(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+                         .OrderBy(f => f))
+                ImagePanel.Children.Add(BuildImageTile(Path.GetFileName(f)));
+        }
+        catch { }
+    }
+
+    private UIElement BuildImageTile(string fileName)
+    {
+        var canvas = new Canvas
+        {
+            Width      = 64,
+            Height     = 64,
+            Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14))
+        };
+
+        try
+        {
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(ImageFullPath(fileName));
+            bi.EndInit();
+            bi.Freeze();
+
+            double maxDim = 56.0;
+            double scale = System.Math.Min(maxDim / bi.PixelWidth, maxDim / bi.PixelHeight);
+            double w = bi.PixelWidth * scale;
+            double h = bi.PixelHeight * scale;
+
+            var img = new System.Windows.Controls.Image { Source = bi, Width = w, Height = h, Stretch = Stretch.Fill };
+            Canvas.SetLeft(img, (64 - w) / 2.0);
+            Canvas.SetTop(img, (64 - h) / 2.0);
+            canvas.Children.Add(img);
+        }
+        catch { }
+
+        var label = new TextBlock
+        {
+            Text                = fileName,
+            FontFamily          = (FontFamily)FindResource("IBMPlexMono"),
+            FontSize            = 8,
+            Foreground          = new SolidColorBrush(Color.FromRgb(0x78, 0x78, 0x78)),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            Margin              = new Thickness(0, 4, 0, 0),
+            MaxWidth            = 70,
+            TextTrimming        = TextTrimming.CharacterEllipsis
+        };
+
+        var inner = new StackPanel();
+        inner.Children.Add(canvas);
+        inner.Children.Add(label);
+
+        var del = new Button
+        {
+            Content             = "×",
+            Width               = 16,
+            Height              = 16,
+            Padding             = new Thickness(0),
+            FontFamily          = (FontFamily)FindResource("IBMPlexMono"),
+            FontSize            = 11,
+            Foreground          = new SolidColorBrush(Color.FromRgb(0x8a, 0x8a, 0x8a)),
+            Background          = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e)),
+            BorderThickness     = new Thickness(0),
+            Cursor              = Cursors.Hand,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            VerticalAlignment   = System.Windows.VerticalAlignment.Top,
+            Margin              = new Thickness(0, 2, 2, 0)
+        };
+        del.Click += (_, ev) => { ev.Handled = true; DeleteImage(fileName); };
+
+        var grid = new Grid();
+        grid.Children.Add(inner);
+        grid.Children.Add(del);
+
+        var border = new Border
+        {
+            Width           = 74,
+            Height          = 88,
+            Padding         = new Thickness(4),
+            BorderThickness = new Thickness(1),
+            BorderBrush     = new SolidColorBrush(_s.CrTemplate == "image" && _s.CrImagePath == fileName
+                ? Color.FromRgb(0xf5, 0xf5, 0xf5)
+                : Color.FromRgb(0x1e, 0x1e, 0x1e)),
+            Margin          = new Thickness(0, 0, 6, 6),
+            Cursor          = Cursors.Hand,
+            Child           = grid
+        };
+
+        border.MouseLeftButtonDown += (_, _) =>
+        {
+            _s.CrImagePath = fileName;
+            _s.CrTemplate  = "image";
+            _activeCustomName = null;
+            UpdateTemplateTileSelection();
+            InitCustomTemplatesPanel();
+            InitImagePanel();
+            RefreshCrosshairOverlay();
+        };
+
+        return border;
+    }
+
+    private void DeleteImage(string fileName)
+    {
+        try { File.Delete(ImageFullPath(fileName)); } catch { }
+        if (_s.CrImagePath == fileName)
+        {
+            _s.CrImagePath = "";
+            _s.CrTemplate  = "";
+            RefreshCrosshairOverlay();
+        }
+        InitImagePanel();
+    }
+
+    private void ImportImage_Click(object s, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title          = "Import crosshair image",
+            Filter         = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*"
+        };
+
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            Directory.CreateDirectory(ImagesDir);
+            var fileName = Path.GetFileName(dlg.FileName);
+            var dest = Path.Combine(ImagesDir, fileName);
+
+            if (File.Exists(dest))
+            {
+                fileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{DateTime.Now:HHmmss}{Path.GetExtension(fileName)}";
+                dest = Path.Combine(ImagesDir, fileName);
+            }
+
+            File.Copy(dlg.FileName, dest);
+
+            _s.CrImagePath = fileName;
+            _s.CrTemplate  = "image";
+            _activeCustomName = null;
+            UpdateTemplateTileSelection();
+            InitCustomTemplatesPanel();
+            InitImagePanel();
+            RefreshCrosshairOverlay();
+        }
+        catch { }
+    }
+
+    private void DragMode_Click(object s, RoutedEventArgs e)
+    {
+        if (_s.CrTemplate != "image") return;
+        _dragMode = !_dragMode;
+        _crOverlay?.SetDragMode(_dragMode);
+        DragModeBtn.Content = _dragMode ? "CLICK TO FINISH" : "DRAG TO POSITION";
+        DragModeBtn.Background = _dragMode
+            ? new SolidColorBrush(Color.FromRgb(0xaa, 0x20, 0x20))
+            : (Brush)FindResource("BgBtn");
+
+        if (!_dragMode)
+            RefreshCrosshairOverlay();
+    }
+
+    private void OnImageDragged(int dx, int dy)
+    {
+        _s.CrOffsetX = Math.Clamp(dx, -MaxOffsetX, MaxOffsetX);
+        _s.CrOffsetY = Math.Clamp(dy, -MaxOffsetY, MaxOffsetY);
+        UpdatePositionLabels();
+        RefreshCrosshairOverlay();
+    }
+
+    private void InitKeybindsPanel()
+    {
+        BuildSlotList();
+    }
+
+    private void BuildSlotList()
+    {
+        if (SlotListPanel == null) return;
+        SlotListPanel.Children.Clear();
+
+        if (_s.CrSlots.Count == 0)
+        {
+            SlotListPanel.Children.Add(new TextBlock
+            {
+                Text         = "No keybinds yet. Configure a crosshair, then press BIND CURRENT CROSSHAIR.",
+                FontFamily   = (FontFamily)FindResource("IBMPlexMono"),
+                FontSize     = 9,
+                Foreground   = new SolidColorBrush(Color.FromRgb(0x78, 0x78, 0x78)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin       = new Thickness(0, 4, 0, 4)
+            });
+            return;
+        }
+
+        foreach (var slot in _s.CrSlots.ToList())
+            SlotListPanel.Children.Add(BuildSlotRow(slot));
+    }
+
+    private UIElement BuildSlotRow(CrosshairSlot slot)
+    {
+        var thumb = BuildSlotThumb(slot);
+
+        var keyBlock = new TextBlock
+        {
+            Text              = DisplayKey(slot.Key),
+            FontFamily        = (FontFamily)FindResource("IBMPlexMono"),
+            FontSize          = 12,
+            FontWeight        = FontWeights.Bold,
+            Foreground        = new SolidColorBrush(Color.FromRgb(0xf5, 0xf5, 0xf5)),
+            VerticalAlignment = System.Windows.VerticalAlignment.Center
+        };
+        keyBlock.Margin = new Thickness(10, 0, 6, 0);
+
+        var typeBlock = new TextBlock
+        {
+            Text              = SlotTypeLabel(slot),
+            FontFamily        = (FontFamily)FindResource("IBMPlexMono"),
+            FontSize          = 9,
+            Foreground        = new SolidColorBrush(Color.FromRgb(0x78, 0x78, 0x78)),
+            VerticalAlignment = System.Windows.VerticalAlignment.Center
+        };
+
+        var delBtn = new Button { Content = "×", Style = (Style)FindResource("DarkBtn"), Width = 36, Tag = slot.Key };
+        delBtn.Click += (_, ev) => { ev.Handled = true; DeleteSlot(slot.Key); };
+
+        var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(thumb, 0);
+        Grid.SetColumn(keyBlock, 1);
+        Grid.SetColumn(typeBlock, 2);
+        Grid.SetColumn(delBtn, 3);
+        row.Children.Add(thumb);
+        row.Children.Add(keyBlock);
+        row.Children.Add(typeBlock);
+        row.Children.Add(delBtn);
+
+        return new Border
+        {
+            BorderBrush     = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e)),
+            BorderThickness = new Thickness(1),
+            Background      = new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a)),
+            Padding         = new Thickness(12, 10, 12, 10),
+            Margin          = new Thickness(0, 0, 0, 6),
+            Child           = row
+        };
+    }
+
+    private static string SlotTypeLabel(CrosshairSlot slot)
+    {
+        if (slot.Template == "image") return "image";
+        if (slot.Template == "custom") return "drawn";
+        return slot.Template;
+    }
+
+    private UIElement BuildSlotThumb(CrosshairSlot slot)
+    {
+        var canvas = new Canvas
+        {
+            Width      = 42,
+            Height     = 42,
+            Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14))
+        };
+
+        if (slot.Template == "image")
+            DrawThumbImage(canvas, slot.ImagePath);
+        else if (slot.Template == "custom")
+            DrawThumbCustom(canvas, slot.CustomPixels, slot.BuilderSize);
+        else if (!string.IsNullOrEmpty(slot.Template))
+            CrDraw.Draw(canvas, 21, 21, 0.34, slot.Color, slot.Outline, slot.OutlineSize, slot.Template, slot.Gap);
+
+        return new Border
+        {
+            Width           = 42,
+            Height          = 42,
+            BorderBrush     = new SolidColorBrush(Color.FromRgb(0x1e, 0x1e, 0x1e)),
+            BorderThickness = new Thickness(1),
+            VerticalAlignment = System.Windows.VerticalAlignment.Center,
+            Child           = canvas
+        };
+    }
+
+    private void DeleteSlot(string key)
+    {
+        _s.CrSlots.RemoveAll(s => s.Key == key);
+        SaveSettings();
+        BuildSlotList();
+    }
+
+    private void BindSlot_Click(object s, RoutedEventArgs e)
+    {
+        if (_slotBindingMode) return;
+        _slotBindingMode = true;
+        BindSlotBtn.Content = "PRESS A KEY… (ESC TO CANCEL)";
+        BindSlotBtn.Background = (Brush)FindResource("Red");
+    }
+
+    private void FinishSlotBinding(string key)
+    {
+        _slotBindingMode = false;
+        BindSlotBtn.Content = "BIND CURRENT CROSSHAIR";
+        BindSlotBtn.Background = (Brush)FindResource("BgBtn");
+
+        if (key == "Key.esc") return;
+
+        _s.CrSlots.RemoveAll(s => s.Key == key);
+
+        var slot = new CrosshairSlot
+        {
+            Key          = key,
+            Template     = _s.CrTemplate,
+            Color        = _s.CrColor,
+            Outline      = _s.CrOutline,
+            OutlineSize  = _s.CrOutlineSize,
+            Size         = _s.CrSize,
+            Opacity      = _s.CrOpacity,
+            Gap          = _s.CrGap,
+            OffsetX      = _s.CrOffsetX,
+            OffsetY      = _s.CrOffsetY,
+            BuilderSize  = _s.CrBuilderSize,
+            ImagePath    = _s.CrImagePath,
+            CustomPixels = new List<string>(_s.CrCustomPixels)
+        };
+
+        _s.CrSlots.Add(slot);
+        SaveSettings();
+        BuildSlotList();
+    }
+
+    private void ApplySlot(CrosshairSlot slot)
+    {
+        _s.CrTemplate     = slot.Template;
+        _s.CrColor        = slot.Color;
+        _s.CrOutline      = slot.Outline;
+        _s.CrOutlineSize  = slot.OutlineSize;
+        _s.CrSize         = slot.Size;
+        _s.CrOpacity      = slot.Opacity;
+        _s.CrGap          = slot.Gap;
+        _s.CrOffsetX      = slot.OffsetX;
+        _s.CrOffsetY      = slot.OffsetY;
+        _s.CrBuilderSize  = slot.BuilderSize;
+        _s.CrImagePath    = slot.ImagePath;
+        _s.CrCustomPixels = new List<string>(slot.CustomPixels);
+
+        _builderSize = slot.BuilderSize;
+
+        if (IsLoaded)
+        {
+            InitCrosshairsPanel();
+
+            if (slot.Template == "custom" && _builderGridControl != null)
+            {
+                RebuildBuilderGrid(slot.BuilderSize);
+                LoadBuilderGridFromState();
+                UpdateBuilderSizeButtons();
+            }
+
+            RefreshCrosshairOverlay();
         }
     }
 }

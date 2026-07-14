@@ -71,7 +71,7 @@
                                            Foreground="#f5f5f5"
                                            VerticalAlignment="Center"/>
                                 <TextBlock x:Name="VersionLabel"
-                                           Text=" v1.0.7"
+                                           Text=" v1.0.8"
                                            FontFamily="{StaticResource IBMPlexMono}"
                                            FontSize="9"
                                            Foreground="#2a2a2a"
@@ -124,6 +124,11 @@
                                         Style="{StaticResource SideNavBtn}"
                                         Margin="0,0,0,2"
                                         Click="BtnBuilder_Click"/>
+                                <Button x:Name="BtnKeybinds"
+                                        Content="Keybinds"
+                                        Style="{StaticResource SideNavBtn}"
+                                        Margin="0,0,0,2"
+                                        Click="BtnKeybinds_Click"/>
                                 <Button x:Name="BtnGames"
                                         Content="Games"
                                         Style="{StaticResource SideNavBtn}"
@@ -204,6 +209,30 @@
                                                        Foreground="#787878"
                                                        Margin="0,0,0,14"/>
                                             <WrapPanel x:Name="CustomTemplatePanel"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="#1e1e1e" BorderThickness="1"
+                                            Background="#0f0f0f" Margin="0,0,0,10">
+                                        <StackPanel Margin="18,16,18,18">
+                                            <Grid Margin="0,0,0,4">
+                                                <TextBlock Text="IMAGES"
+                                                           FontFamily="{StaticResource BebasNeue}"
+                                                           FontSize="18"
+                                                           Foreground="#f5f5f5"
+                                                           VerticalAlignment="Center"/>
+                                                <Button Content="IMPORT"
+                                                        Style="{StaticResource DarkBtn}"
+                                                        HorizontalAlignment="Right"
+                                                        Width="80"
+                                                        Click="ImportImage_Click"/>
+                                            </Grid>
+                                            <TextBlock Text="Import your own image as a crosshair — click to use, × to delete"
+                                                       FontFamily="{StaticResource IBMPlexMono}"
+                                                       FontSize="9"
+                                                       Foreground="#787878"
+                                                       Margin="0,0,0,14"/>
+                                            <WrapPanel x:Name="ImagePanel"/>
                                         </StackPanel>
                                     </Border>
 
@@ -507,7 +536,14 @@
                                             <Button Content="RESET POSITION"
                                                     Style="{StaticResource DarkBtn}"
                                                     HorizontalAlignment="Stretch"
+                                                    Margin="0,0,0,8"
                                                     Click="CrPosReset_Click"/>
+
+                                            <Button x:Name="DragModeBtn"
+                                                    Content="DRAG TO POSITION"
+                                                    Style="{StaticResource DarkBtn}"
+                                                    HorizontalAlignment="Stretch"
+                                                    Click="DragMode_Click"/>
                                         </StackPanel>
                                     </Border>
 
@@ -889,6 +925,63 @@
                                                         Style="{StaticResource DarkBtn}"
                                                         Click="AddCustomGame_Click"/>
                                             </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+
+                                <StackPanel x:Name="KeybindsPanel" Margin="28,24,28,28" Visibility="Collapsed">
+
+                                    <TextBlock Text="KEYBINDS"
+                                               FontFamily="{StaticResource BebasNeue}"
+                                               FontSize="38"
+                                               Foreground="#f5f5f5"
+                                               Margin="0,0,0,2"/>
+                                    <TextBlock Text="Bind crosshairs to keys — press a key to switch instantly"
+                                               FontFamily="{StaticResource IBMPlexMono}"
+                                               FontSize="10"
+                                               Foreground="#787878"
+                                               Margin="0,0,0,18"
+                                               TextWrapping="Wrap"/>
+                                    <Rectangle Height="1" Fill="#1e1e1e" Margin="0,0,0,18"/>
+
+                                    <Border BorderBrush="#1e1e1e" BorderThickness="1"
+                                            Background="#0f0f0f" Margin="0,0,0,10">
+                                        <StackPanel Margin="18,16,18,18">
+                                            <TextBlock Text="BIND CROSSHAIR"
+                                                       FontFamily="{StaticResource BebasNeue}"
+                                                       FontSize="18"
+                                                       Foreground="#f5f5f5"
+                                                       Margin="0,0,0,4"/>
+                                            <TextBlock Text="Set up a crosshair in the Crosshairs or Builder tab, then press BIND and hit any key. That key will switch to your current crosshair on press."
+                                                       FontFamily="{StaticResource IBMPlexMono}"
+                                                       FontSize="9"
+                                                       Foreground="#787878"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,0,0,14"/>
+                                            <Button x:Name="BindSlotBtn"
+                                                    Content="BIND CURRENT CROSSHAIR"
+                                                    Style="{StaticResource DarkBtn}"
+                                                    HorizontalAlignment="Stretch"
+                                                    Click="BindSlot_Click"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="#1e1e1e" BorderThickness="1"
+                                            Background="#0f0f0f" Margin="0,0,0,10">
+                                        <StackPanel Margin="18,16,18,18">
+                                            <TextBlock Text="BOUND CROSSHAIRS"
+                                                       FontFamily="{StaticResource BebasNeue}"
+                                                       FontSize="18"
+                                                       Foreground="#f5f5f5"
+                                                       Margin="0,0,0,14"/>
+                                            <TextBlock Text="Press a bound key at any time to switch. Click × to remove a binding."
+                                                       FontFamily="{StaticResource IBMPlexMono}"
+                                                       FontSize="9"
+                                                       Foreground="#787878"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,0,0,14"/>
+                                            <StackPanel x:Name="SlotListPanel"/>
                                         </StackPanel>
                                     </Border>
 
