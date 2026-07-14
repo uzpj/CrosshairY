@@ -545,6 +545,8 @@ public partial class MainWindow : Window
             Height     = 64,
             Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14))
         };
+        RenderOptions.SetEdgeMode(canvas, EdgeMode.Aliased);
+        canvas.SnapsToDevicePixels = true;
         CrDraw.Draw(canvas, 32, 32, 0.5, _s.CrColor, _s.CrOutline, _s.CrOutlineSize, id);
 
         var label = new TextBlock
