@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Resource Include="Fonts\**"/>
+    <Resource Include="CrosshairY.ico"/>
   </ItemGroup>
 
 </Project>
