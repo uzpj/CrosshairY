@@ -23,25 +23,27 @@ CrosshairY draws a persistent crosshair directly on your screen as a transparent
 ## Features
 
 - **22 crosshair templates** - Dot, Ring, Square, Thin Cross, Thick Cross, Cross·, T-Shape, Circle+, Small Plus, Large Plus, Sniper, X Cross, X·, Arrows, Chevrons, Triangle, Diamond, Dot Ring, 2 Rings, Plus·, Corners, X Thick
+- **Image import** - import your own PNG/JPG/BMP/GIF as a crosshair, position it anywhere on screen with drag controls, resize and recolor it with the existing sliders, and save it in your profiles
 - **8 color swatches** with live preview plus a full **custom color picker** - square saturation/value field, hue bar and free hex input
 - **Crosshair builder** - draw your own crosshair on a 15x15, 30x30 or 60x60 grid with a 16-color palette and a full tool set: **pencil, eraser, fill (bucket), line, rectangle and ellipse**
   - **Undo / redo** with Ctrl+Z / Ctrl+Y
   - **Mirror symmetry** - left/right, up/down or 4-way mirroring while you draw
   - **Save as crosshair** - pin your drawing into the "My Crosshairs" grid for one-click reuse
+- **Crosshair keybinds** - bind any template, drawn, or image crosshair to any key for instant switching on press. Each binding stores its own full configuration with a live preview thumbnail. Bound keys persist globally across all profiles.
 - **Randomize button** - picks a random template and color instantly
 - **Outline toggle** with adjustable thickness (1-5)
 - **Size slider** from 50% to 200%
 - **Opacity slider** from 10% to 100%
 - **Center gap slider** - control the gap between crosshair arms (0-20)
 - **Position offset** - nudge the crosshair off-center on X and Y with `−`/`+` buttons (hold to repeat) or by typing an exact value, clamped to the screen bounds
-- **Follow cursor mode** - replaces the Windows cursor with your crosshair so it tracks the pointer with zero lag instead of sitting in the center. Restores the original cursors the moment it is turned off. Works with any template or drawn crosshair
+- **Follow cursor mode** - replaces the Windows cursor with your crosshair so it tracks the pointer with zero lag instead of sitting in the center. Restores the original cursors the moment it is turned off. Works with any template, drawn, or image crosshair
 - **Multi-monitor** - pick which display the crosshair appears on
 - **Profile system** - save, load, overwrite, duplicate and delete configs stored locally in `%APPDATA%\CrosshairY\Configs`, each shown with a live crosshair thumbnail. Drop a friend's `.json` in the folder and hit reload
 - **Auto game-profiles** - the **Games** tab maps a saved profile to a game, then loads it automatically when that game takes focus. Ships with a list of popular titles (Blood Strike, Valorant, CS2, Apex, Fortnite, Overwatch 2, Rainbow Six Siege, PUBG, Call of Duty, Marvel Rivals, The Finals, Destiny 2, Battlefield 2042) and lets you add any other game by its process name. Optional **auto-revert** restores your previous profile the moment you alt-tab out
 - **Share codes** - export the current config to the clipboard as a compact code and import a friend's code in one click
 - **Last used config** auto-loads on startup
 - **Proof mode** - hides the window from screen capture software with a single keypress
-- **Global hotkeys** - bind keys to cycle profiles, toggle the overlay on/off, toggle follow-cursor mode and trigger proof mode, all without opening the UI. Press **ESC** while binding to clear a key back to NONE
+- **Global hotkeys** - bind keys to cycle profiles, toggle the overlay on/off, toggle follow-cursor mode, trigger proof mode, or switch to any bound crosshair slot, all without opening the UI. Press **ESC** while binding to clear a key back to NONE
 - **Auto-update** - on launch CrosshairY checks GitHub for a newer release and shows a small notification. One click downloads it and silently swaps the running executable, then relaunches. Toggle the notifications off in Settings, or check manually any time
 - **Start with Windows** - optional auto-launch on sign-in, toggled in Settings (writes a per-user `Run` key, no admin needed)
 - **System tray** - double-click the tray icon to open; right-click to toggle the overlay, follow-cursor or proof mode on/off, switch between saved profiles, or exit
@@ -99,7 +101,7 @@ Configs are plain `.json` files stored in `%APPDATA%\CrosshairY\Configs\`.
 - **Export code** - copies the current config to the clipboard as a `CY1:` share code
 - **Import code** - reads a `CY1:` code from the clipboard and saves it as a profile (named from the box, or `imported`)
 
-A profile stores the template, color, outline, size, opacity, gap, position offset, follow-cursor mode and any custom builder crosshair. The last loaded config is remembered and auto-applied on the next launch.
+A profile stores the template, color, outline, size, opacity, gap, position offset, follow-cursor mode, any custom builder crosshair, and any imported image path. The last loaded config is remembered and auto-applied on the next launch.
 
 Hotkeys (proof key, profile cycle key, toggle-overlay key, follow-toggle key) and the update-notification preference are global settings stored separately in `%APPDATA%\CrosshairY\settings.dat`. They are never overwritten by loading a profile. Press **ESC** while binding a key to clear it back to NONE.
 
