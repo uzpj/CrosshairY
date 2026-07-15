@@ -168,6 +168,8 @@ CrosshairY/
 
 ## Virus Scan Results
 
+*Last updated: July 15, 2026 — v1.0.8*
+
 | Scanner | Result | Link |
 |---------|--------|------|
 | VirusTotal | 0/70 flagged | [View](https://www.virustotal.com/gui/file/3d99a00f35a260318997824f1356002b83ad5444cea5d5815ef3d502f43b2ed1) |
