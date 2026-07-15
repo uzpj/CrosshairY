@@ -353,7 +353,7 @@ public partial class MainWindow : Window
         (
             "survey_15",
             "What would you like to see added next?",
-            new[] { "More crosshair templates", "Import of Images", "Multiple profiles active at once", "Animated / reactive crosshair", "Other" }
+            new[] { "More crosshair templates", "More customization", "Multiple profiles active at once", "Animated / reactive crosshair", "Other" }
         ),
         (
             "survey_30",
