@@ -166,6 +166,18 @@ CrosshairY/
 
 ---
 
+## Virus Scan Results
+
+| Scanner | Result | Link |
+|---------|--------|------|
+| VirusTotal | 0/70 flagged | [View](https://www.virustotal.com/gui/file/3d99a00f35a260318997824f1356002b83ad5444cea5d5815ef3d502f43b2ed1) |
+| Dr.Web | CLEAN | [View](https://online273.drweb.com/cache/?i=ce6804eb3cc6cb3e8c8f3022aa5e4f76) |
+| Kaspersky OpenTIP | CLEAN | [View](https://opentip.kaspersky.com/3D99A00F35A260318997824F1356002B83AD5444CEA5D5815EF3D502F43B2ED1/results?tab=upload) |
+| Jotti's Virus Scan | 0/13 flagged | [View](https://virusscan.jotti.org/en-US/filescanjob/g5hsub6cwf) |
+| FileScan.io | NO THREAT DETECTED | [View](https://www.filescan.io/uploads/6a5776216f57653c1689951b/reports/b9e2fec5-f538-4661-97cc-d56cff94cf5c/overview) |
+
+---
+
 ## License
 
 MIT - do whatever you want with it.
