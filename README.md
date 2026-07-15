@@ -168,7 +168,7 @@ CrosshairY/
 
 ## Virus Scan Results
 
-*Last updated: July 15, 2026 — v1.0.8*
+*Last updated: July 15, 2026 - v1.0.8*
 
 | Scanner | Result | Link |
 |---------|--------|------|
