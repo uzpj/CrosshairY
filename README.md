@@ -6,7 +6,6 @@
 
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=flat-square)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple?style=flat-square)
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/tvJpwkyBmN)
 ![Language](https://img.shields.io/badge/language-C%23-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-orange?style=flat-square)
 
