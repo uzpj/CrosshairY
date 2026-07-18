@@ -7,10 +7,8 @@ public class AppState
     public string ToggleKey { get; set; } = "";
     public string FollowKey { get; set; } = "";
 
-    public bool   UpdateNotifications { get; set; } = true;
-    public string LastUpdateCheck     { get; set; } = "";
-
-    public bool CaptureHidden { get; set; } = false;
+    public bool CaptureHidden  { get; set; } = false;
+    public bool ProofOnStartup { get; set; } = false;
 
     public int MonitorIndex { get; set; } = 0;
 

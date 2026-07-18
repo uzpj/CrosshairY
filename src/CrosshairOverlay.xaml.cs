@@ -88,7 +88,7 @@ public partial class CrosshairOverlay : Window
         SourceInitialized += (_, _) =>
         {
             _hwnd = new WindowInteropHelper(this).Handle;
-            SetWindowDisplayAffinity(_hwnd, WDA_NONE);
+            SetWindowDisplayAffinity(_hwnd, _proofActive ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
             int ex = GetWindowLong(_hwnd, GWL_EXSTYLE);
             ex |=  WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW;
             ex &= ~WS_EX_APPWINDOW;
@@ -130,10 +130,14 @@ public partial class CrosshairOverlay : Window
         if (IsVisible) Hide();
     }
 
+    private bool _proofActive;
+
     public void SetProof(bool active)
     {
+        _proofActive = active;
         var hwnd = new WindowInteropHelper(this).Handle;
-        SetWindowDisplayAffinity(hwnd, active ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
+        if (hwnd != IntPtr.Zero)
+            SetWindowDisplayAffinity(hwnd, active ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE);
     }
 
     public void ApplyMonitor(int index, double scaleX, double scaleY)

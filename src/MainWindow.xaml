@@ -144,11 +144,6 @@
                                         Style="{StaticResource SideNavBtn}"
                                         Margin="0,0,0,2"
                                         Click="BtnSettings_Click"/>
-                                <Button x:Name="BtnSupport"
-                                        Content="Support"
-                                        Style="{StaticResource SideNavBtn}"
-                                        Margin="0,0,0,2"
-                                        Click="BtnSupport_Click"/>
                                 <Rectangle Height="1" Margin="16,28,16,0" Fill="#1e1e1e"/>
                             </StackPanel>
                         </Border>
@@ -1070,21 +1065,21 @@
                                                     Margin="0,16,0,0" Padding="0,14,0,0">
                                                 <Grid>
                                                     <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="UPDATE NOTIFICATIONS"
+                                                        <TextBlock Text="ALWAYS-ON PROOF MODE"
                                                                    FontFamily="{StaticResource IBMPlexMono}"
                                                                    FontSize="9" FontWeight="Bold"
                                                                    Foreground="#f5f5f5"/>
-                                                        <TextBlock Text="Notify me on startup when a new release is available"
+                                                        <TextBlock Text="Enable proof mode automatically every time CrosshairY starts"
                                                                    FontFamily="{StaticResource IBMPlexMono}"
                                                                    FontSize="9" Foreground="#787878"
                                                                    Margin="0,3,0,0"/>
                                                     </StackPanel>
-                                                    <ToggleButton x:Name="UpdateNotifyToggle"
+                                                    <ToggleButton x:Name="ProofStartupToggle"
                                                                   Style="{StaticResource ToggleSwitch}"
                                                                   HorizontalAlignment="Right"
                                                                   VerticalAlignment="Center"
-                                                                  Checked="UpdateNotifyToggle_Changed"
-                                                                  Unchecked="UpdateNotifyToggle_Changed"/>
+                                                                  Checked="ProofStartupToggle_Changed"
+                                                                  Unchecked="ProofStartupToggle_Changed"/>
                                                 </Grid>
                                             </Border>
 
@@ -1110,19 +1105,6 @@
                                                 </Grid>
                                             </Border>
 
-                                            <Grid Margin="0,12,0,0">
-                                                <TextBlock x:Name="UpdateCheckStatus"
-                                                           Text="Last checked: never"
-                                                           FontFamily="{StaticResource IBMPlexMono}"
-                                                           FontSize="9" Foreground="#787878"
-                                                           VerticalAlignment="Center"/>
-                                                <Button x:Name="UpdateCheckNowBtn"
-                                                        Content="CHECK NOW"
-                                                        Style="{StaticResource DarkBtn}"
-                                                        HorizontalAlignment="Right"
-                                                        Width="100"
-                                                        Click="UpdateCheckNow_Click"/>
-                                            </Grid>
                                         </StackPanel>
                                     </Border>
 
@@ -1144,132 +1126,11 @@
 
                                 </StackPanel>
 
-                                <StackPanel x:Name="SupportPanel" Margin="28,24,28,28" Visibility="Collapsed">
-
-                                    <TextBlock Text="SUPPORT"
-                                               FontFamily="{StaticResource BebasNeue}"
-                                               FontSize="38"
-                                               Foreground="#f5f5f5"
-                                               Margin="0,0,0,2"/>
-                                    <TextBlock Text="If you enjoy CrosshairY, consider supporting the project"
-                                               FontFamily="{StaticResource IBMPlexMono}"
-                                               FontSize="10"
-                                               Foreground="#787878"
-                                               Margin="0,0,0,18"/>
-                                    <Rectangle Height="1" Fill="#1e1e1e" Margin="0,0,0,18"/>
-
-                                    <Border BorderBrush="#1e1e1e" BorderThickness="1"
-                                            Background="#0f0f0f" Margin="0,0,0,10">
-                                        <StackPanel Margin="18,16,18,18">
-                                            <TextBlock Text="SOCIALS"
-                                                       FontFamily="{StaticResource BebasNeue}"
-                                                       FontSize="18"
-                                                       Foreground="#f5f5f5"
-                                                       Margin="0,0,0,14"/>
-                                            <Button Content="TWITTER / X"
-                                                    Style="{StaticResource DarkBtn}"
-                                                    HorizontalAlignment="Stretch"
-                                                    Margin="0,0,0,6"
-                                                    Tag="https://x.com/julian_bzpass"
-                                                    Click="SocialLink_Click"/>
-                                            <Button Content="INSTAGRAM"
-                                                    Style="{StaticResource DarkBtn}"
-                                                    HorizontalAlignment="Stretch"
-                                                    Margin="0,0,0,6"
-                                                    Tag="https://www.instagram.com/jxlian.ceisa/"
-                                                    Click="SocialLink_Click"/>
-                                            <Button Content="YOUTUBE"
-                                                    Style="{StaticResource DarkBtn}"
-                                                    HorizontalAlignment="Stretch"
-                                                    Margin="0,0,0,6"
-                                                    Tag="https://www.youtube.com/@clientreviewer"
-                                                    Click="SocialLink_Click"/>
-                                            <Button Content="DISCORD"
-                                                    Style="{StaticResource DarkBtn}"
-                                                    HorizontalAlignment="Stretch"
-                                                    Tag="https://discord.gg/tvJpwkyBmN"
-                                                    Click="SocialLink_Click"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border BorderBrush="#1e1e1e" BorderThickness="1"
-                                            Background="#0f0f0f" Margin="0,0,0,10">
-                                        <StackPanel Margin="18,16,18,18">
-                                            <TextBlock Text="DONATE"
-                                                       FontFamily="{StaticResource BebasNeue}"
-                                                       FontSize="18"
-                                                       Foreground="#f5f5f5"
-                                                       Margin="0,0,0,4"/>
-                                            <TextBlock Text="CrosshairY is free. Any support is appreciated."
-                                                       FontFamily="{StaticResource IBMPlexMono}"
-                                                       FontSize="9"
-                                                       Foreground="#787878"
-                                                       Margin="0,0,0,14"/>
-                                            <Button Content="SUPPORT CUTE PETS"
-                                                    Style="{StaticResource DarkBtn}"
-                                                    HorizontalAlignment="Stretch"
-                                                    Margin="0,0,0,6"
-                                                    Tag="https://petcolove.org/"
-                                                    Click="SocialLink_Click"/>
-                                            <Button Content="CHECKOUT THIS PROJECT"
-                                                    Style="{StaticResource DarkBtn}"
-                                                    HorizontalAlignment="Stretch"
-                                                    Tag="https://discord.gg/BcVjpCxNqC"
-                                                    Click="SocialLink_Click"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                </StackPanel>
-
                             </Grid>
                         </ScrollViewer>
 
                     </Grid>
                 </Grid>
-            </Border>
-
-            <Border x:Name="UpdateToast"
-                    Panel.ZIndex="60"
-                    Visibility="Collapsed"
-                    Opacity="0"
-                    VerticalAlignment="Bottom"
-                    HorizontalAlignment="Right"
-                    Margin="0,0,18,18"
-                    Width="290"
-                    Background="#0f0f0f"
-                    BorderBrush="#1e1e1e"
-                    BorderThickness="1"
-                    RenderTransformOrigin="0.5,0.5">
-                <Border.RenderTransform>
-                    <TranslateTransform x:Name="UpdateToastSlide" Y="24"/>
-                </Border.RenderTransform>
-                <StackPanel Margin="16,12,12,14">
-                    <Grid Margin="0,0,0,6">
-                        <TextBlock Text="UPDATE AVAILABLE"
-                                   FontFamily="{StaticResource BebasNeue}"
-                                   FontSize="17"
-                                   Foreground="#f5f5f5"
-                                   VerticalAlignment="Center"/>
-                        <Button x:Name="UpdateDismissBtn"
-                                Style="{StaticResource TitleCloseBtn}"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Top"
-                                Margin="0,-4,-4,0"
-                                Click="UpdateDismiss_Click"/>
-                    </Grid>
-                    <TextBlock x:Name="UpdateToastText"
-                               Text="A new version is ready to install."
-                               FontFamily="{StaticResource IBMPlexMono}"
-                               FontSize="9"
-                               Foreground="#787878"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,12"/>
-                    <Button x:Name="UpdateDownloadBtn"
-                            Content="DOWNLOAD &amp; INSTALL"
-                            Style="{StaticResource DarkBtn}"
-                            HorizontalAlignment="Stretch"
-                            Click="UpdateDownload_Click"/>
-                </StackPanel>
             </Border>
 
             <Border x:Name="GoodbyeOverlay"

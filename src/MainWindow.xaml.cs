@@ -34,10 +34,6 @@ public partial class MainWindow : Window
     private CrosshairOverlay? _crOverlay;
 
     public const string Version = "1.0.8";
-    private string? _updateExeUrl;
-    private string? _updateHtmlUrl;
-    private long    _updateExeSize;
-    private bool    _updateBusy;
 
     private string   _builderColor    = "#ffffff";
     private int      _builderSize     = 15;
@@ -66,9 +62,6 @@ public partial class MainWindow : Window
 
     private static readonly string LastUsedFile =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CrosshairY", "Configs", ".lastused");
-
-    private static readonly string LaunchesFile =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CrosshairY", "launches.dat");
 
     private static readonly string SettingsFile =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CrosshairY", "settings.dat");
@@ -257,119 +250,8 @@ public partial class MainWindow : Window
         t2.Start();
 
         var t3 = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(3000) };
-        t3.Tick += (_, _) => { t3.Stop(); CheckAndShowSurvey(); };
+        t3.Tick += (_, _) => { t3.Stop(); TransitionToMain(); };
         t3.Start();
-    }
-
-    private void CheckAndShowSurvey()
-    {
-        int launchCount   = IncrementLaunchCount(out var completedIds);
-        var pendingSurvey = GetPendingSurvey(launchCount, completedIds);
-
-        if (pendingSurvey.HasValue)
-        {
-            var (surveyId, question, options) = pendingSurvey.Value;
-            var win = new SurveyWindow(question, options, launchCount) { Owner = this };
-            win.ShowDialog();
-            if (win.Submitted)
-                MarkSurveyCompleted(surveyId);
-        }
-
-        TransitionToMain();
-    }
-
-    private static int IncrementLaunchCount(out HashSet<string> completedIds)
-    {
-        Directory.CreateDirectory(AppDir);
-
-        int count    = 1;
-        completedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            if (File.Exists(LaunchesFile))
-            {
-                var parts = File.ReadAllText(LaunchesFile).Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 0 && int.TryParse(parts[0].Trim(), out int stored))
-                    count = stored + 1;
-                foreach (var part in parts.Skip(1))
-                    completedIds.Add(part.Trim());
-            }
-        }
-        catch { }
-
-        WriteLaunchesFile(count, completedIds);
-        return count;
-    }
-
-    private static void MarkSurveyCompleted(string surveyId)
-    {
-        try
-        {
-            int count = 1;
-            HashSet<string> completedIds;
-
-            if (File.Exists(LaunchesFile))
-            {
-                var parts = File.ReadAllText(LaunchesFile).Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 0 && int.TryParse(parts[0].Trim(), out int stored))
-                    count = stored;
-                completedIds = new HashSet<string>(parts.Skip(1).Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
-            }
-            else
-            {
-                completedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
-
-            completedIds.Add(surveyId);
-            WriteLaunchesFile(count, completedIds);
-        }
-        catch { }
-    }
-
-    private static void WriteLaunchesFile(int count, HashSet<string> completedIds)
-    {
-        try
-        {
-            var parts = new List<string> { count.ToString() };
-            parts.AddRange(completedIds);
-            File.WriteAllText(LaunchesFile, string.Join(",", parts));
-        }
-        catch { }
-    }
-
-    private static readonly (string id, string question, string[] options)[] Surveys =
-    {
-        (
-            "survey_3",
-            "How did you find us?",
-            new[] { "TikTok", "GitHub", "Discord", "Friend", "Website", "Other" }
-        ),
-        (
-            "survey_7",
-            "What game do you mainly use CrosshairY for?",
-            new[] { "Fortnite", "Blood Strike", "CS2", "Apex Legends", "Valorant", "Other" }
-        ),
-        (
-            "survey_15",
-            "What would you like to see added next?",
-            new[] { "More crosshair templates", "More customization", "Multiple profiles active at once", "Animated / reactive crosshair", "Other" }
-        ),
-        (
-            "survey_30",
-            "How would you rate CrosshairY?",
-            new[] { "1 star", "2 stars", "3 stars", "4 stars", "5 stars" }
-        )
-    };
-
-    private static readonly int[] SurveyTriggers = { 3, 7, 15, 30 };
-
-    private static (string id, string question, string[] options)? GetPendingSurvey(int launchCount, HashSet<string> completedIds)
-    {
-        for (int i = 0; i < SurveyTriggers.Length; i++)
-            if (launchCount == SurveyTriggers[i] && !completedIds.Contains(Surveys[i].id))
-                return Surveys[i];
-        return null;
     }
 
     private void TransitionToMain()
@@ -391,6 +273,11 @@ public partial class MainWindow : Window
             _crOverlay = new CrosshairOverlay();
             _crOverlay.ImageDragged += OnImageDragged;
             LoadSettings();
+            if (_s.ProofOnStartup && !_s.CaptureHidden)
+            {
+                _s.CaptureHidden = true;
+                ApplyCaptureAffinity();
+            }
             InitSettingsPanel();
             InitGamesPanel();
             SetupSmoothScroll(MainScrollViewer);
@@ -403,7 +290,6 @@ public partial class MainWindow : Window
             UpdateMonitorButtons();
             ApplyMonitorToOverlay();
             VersionLabel.Text = $" v{Version}";
-            _ = CheckForUpdatesAsync();
         };
         StartupGrid.BeginAnimation(OpacityProperty, fade);
     }
@@ -446,9 +332,8 @@ public partial class MainWindow : Window
         CycleKeyBtn.Content  = string.IsNullOrEmpty(_s.CycleKey) ? "NONE" : DisplayKey(_s.CycleKey);
         ToggleKeyBtn.Content = string.IsNullOrEmpty(_s.ToggleKey) ? "NONE" : DisplayKey(_s.ToggleKey);
         FollowKeyBtn.Content = string.IsNullOrEmpty(_s.FollowKey) ? "NONE" : DisplayKey(_s.FollowKey);
-        UpdateNotifyToggle.IsChecked = _s.UpdateNotifications;
+        ProofStartupToggle.IsChecked = _s.ProofOnStartup;
         StartupToggle.IsChecked = StartupManager.IsEnabled();
-        UpdateLastCheckedLabel();
         BuildMonitorButtons();
     }
 
@@ -954,130 +839,15 @@ public partial class MainWindow : Window
         RefreshCrosshairOverlay();
     }
 
-    private void UpdateNotifyToggle_Changed(object s, RoutedEventArgs e)
+    private void ProofStartupToggle_Changed(object s, RoutedEventArgs e)
     {
-        _s.UpdateNotifications = UpdateNotifyToggle.IsChecked == true;
+        _s.ProofOnStartup = ProofStartupToggle.IsChecked == true;
         SaveSettings();
-        if (!_s.UpdateNotifications) HideUpdateToast();
     }
 
     private void StartupToggle_Changed(object s, RoutedEventArgs e)
     {
         StartupManager.SetEnabled(StartupToggle.IsChecked == true);
-    }
-
-    private async System.Threading.Tasks.Task CheckForUpdatesAsync(bool manual = false)
-    {
-        if (!manual && !_s.UpdateNotifications) return;
-
-        if (manual)
-        {
-            UpdateCheckNowBtn.IsEnabled = false;
-            UpdateCheckNowBtn.Content   = "CHECKING…";
-        }
-
-        var rel = await Updater.GetLatestAsync();
-
-        _s.LastUpdateCheck = DateTime.Now.ToString("o");
-        SaveSettings();
-        UpdateLastCheckedLabel();
-
-        if (manual)
-        {
-            UpdateCheckNowBtn.IsEnabled = true;
-            UpdateCheckNowBtn.Content   = "CHECK NOW";
-        }
-
-        if (rel == null)
-        {
-            if (manual && UpdateCheckStatus != null) UpdateCheckStatus.Text = "Check failed — try again later";
-            return;
-        }
-
-        if (Updater.IsNewer(Version, rel.Tag))
-        {
-            _updateExeUrl  = rel.ExeUrl;
-            _updateHtmlUrl = rel.HtmlUrl;
-            _updateExeSize = rel.ExeSize;
-            ShowUpdateToast(rel.Tag);
-        }
-        else if (manual && UpdateCheckStatus != null)
-        {
-            UpdateCheckStatus.Text = $"You're on the latest version (v{Version})";
-        }
-    }
-
-    private async void UpdateCheckNow_Click(object s, RoutedEventArgs e) => await CheckForUpdatesAsync(manual: true);
-
-    private void UpdateLastCheckedLabel()
-    {
-        if (UpdateCheckStatus == null) return;
-
-        if (!string.IsNullOrEmpty(_s.LastUpdateCheck)
-            && DateTime.TryParse(_s.LastUpdateCheck, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
-            UpdateCheckStatus.Text = $"Last checked: {dt.ToLocalTime():yyyy-MM-dd HH:mm}";
-        else
-            UpdateCheckStatus.Text = "Last checked: never";
-    }
-
-    private void ShowUpdateToast(string tag)
-    {
-        var v = tag.TrimStart('v', 'V');
-        UpdateToastText.Text        = $"Version {v} is ready to install.";
-        UpdateDownloadBtn.Content   = string.IsNullOrEmpty(_updateExeUrl) ? "VIEW RELEASE" : "DOWNLOAD & INSTALL";
-        UpdateDownloadBtn.IsEnabled = true;
-        UpdateDismissBtn.IsEnabled  = true;
-        UpdateToast.Visibility      = Visibility.Visible;
-
-        var fade  = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(280))) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-        var slide = new DoubleAnimation(24, 0, new Duration(TimeSpan.FromMilliseconds(280))) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-        UpdateToast.BeginAnimation(OpacityProperty, fade);
-        UpdateToastSlide.BeginAnimation(TranslateTransform.YProperty, slide);
-    }
-
-    private void HideUpdateToast()
-    {
-        if (UpdateToast.Visibility != Visibility.Visible) return;
-
-        var fade  = new DoubleAnimation(UpdateToast.Opacity, 0, new Duration(TimeSpan.FromMilliseconds(200))) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
-        fade.Completed += (_, _) => UpdateToast.Visibility = Visibility.Collapsed;
-        var slide = new DoubleAnimation(0, 24, new Duration(TimeSpan.FromMilliseconds(200)));
-        UpdateToast.BeginAnimation(OpacityProperty, fade);
-        UpdateToastSlide.BeginAnimation(TranslateTransform.YProperty, slide);
-    }
-
-    private void UpdateDismiss_Click(object s, RoutedEventArgs e) => HideUpdateToast();
-
-    private async void UpdateDownload_Click(object s, RoutedEventArgs e)
-    {
-        if (_updateBusy) return;
-
-        if (string.IsNullOrEmpty(_updateExeUrl))
-        {
-            if (!string.IsNullOrEmpty(_updateHtmlUrl))
-                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_updateHtmlUrl) { UseShellExecute = true }); } catch { }
-            return;
-        }
-
-        _updateBusy                 = true;
-        UpdateDownloadBtn.IsEnabled = false;
-        UpdateDismissBtn.IsEnabled  = false;
-        UpdateDownloadBtn.Content   = "DOWNLOADING…";
-
-        var path = await Updater.DownloadAsync(_updateExeUrl, _updateExeSize);
-
-        if (path != null && Updater.LaunchSwapAndExit(path))
-        {
-            UpdateDownloadBtn.Content = "RESTARTING…";
-            PrepareForExit();
-            Application.Current.Shutdown(0);
-            return;
-        }
-
-        UpdateDownloadBtn.Content   = "FAILED — RETRY";
-        UpdateDownloadBtn.IsEnabled = true;
-        UpdateDismissBtn.IsEnabled  = true;
-        _updateBusy                 = false;
     }
 
     private static readonly Random _rng = new();
@@ -1346,7 +1116,6 @@ public partial class MainWindow : Window
         CrosshairsPanel.Visibility = Visibility.Visible;
         SettingsPanel.Visibility   = Visibility.Collapsed;
         ProfilesPanel.Visibility   = Visibility.Collapsed;
-        SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
         KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
@@ -1361,27 +1130,11 @@ public partial class MainWindow : Window
         SettingsPanel.Visibility   = Visibility.Visible;
         CrosshairsPanel.Visibility = Visibility.Collapsed;
         ProfilesPanel.Visibility   = Visibility.Collapsed;
-        SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
         KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(SettingsPanel);
         AnimateNavSelect(BtnSettings);
-        _scrollTarget = 0;
-        MainScrollViewer.ScrollToTop();
-    }
-
-    private void BtnSupport_Click(object s, RoutedEventArgs e)
-    {
-        SupportPanel.Visibility    = Visibility.Visible;
-        CrosshairsPanel.Visibility = Visibility.Collapsed;
-        ProfilesPanel.Visibility   = Visibility.Collapsed;
-        SettingsPanel.Visibility   = Visibility.Collapsed;
-        BuilderPanel.Visibility    = Visibility.Collapsed;
-        KeybindsPanel.Visibility   = Visibility.Collapsed;
-        GamesPanel.Visibility      = Visibility.Collapsed;
-        FadeInPanel(SupportPanel);
-        AnimateNavSelect(BtnSupport);
         _scrollTarget = 0;
         MainScrollViewer.ScrollToTop();
     }
@@ -1392,7 +1145,6 @@ public partial class MainWindow : Window
         CrosshairsPanel.Visibility = Visibility.Collapsed;
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SettingsPanel.Visibility   = Visibility.Collapsed;
-        SupportPanel.Visibility    = Visibility.Collapsed;
         KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(BuilderPanel);
@@ -1407,7 +1159,6 @@ public partial class MainWindow : Window
         CrosshairsPanel.Visibility = Visibility.Collapsed;
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SettingsPanel.Visibility   = Visibility.Collapsed;
-        SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
         FadeInPanel(KeybindsPanel);
@@ -1415,12 +1166,6 @@ public partial class MainWindow : Window
         _scrollTarget = 0;
         MainScrollViewer.ScrollToTop();
         BuildSlotList();
-    }
-
-    private void SocialLink_Click(object s, RoutedEventArgs e)
-    {
-        if (s is Button btn && btn.Tag is string url)
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     private void StartBinding(Button btn, Action<string> callback)
@@ -1542,7 +1287,6 @@ public partial class MainWindow : Window
         ProfilesPanel.Visibility   = Visibility.Visible;
         CrosshairsPanel.Visibility = Visibility.Collapsed;
         SettingsPanel.Visibility   = Visibility.Collapsed;
-        SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
         KeybindsPanel.Visibility   = Visibility.Collapsed;
         GamesPanel.Visibility      = Visibility.Collapsed;
@@ -1559,7 +1303,6 @@ public partial class MainWindow : Window
         CrosshairsPanel.Visibility = Visibility.Collapsed;
         ProfilesPanel.Visibility   = Visibility.Collapsed;
         SettingsPanel.Visibility   = Visibility.Collapsed;
-        SupportPanel.Visibility    = Visibility.Collapsed;
         BuilderPanel.Visibility    = Visibility.Collapsed;
         KeybindsPanel.Visibility   = Visibility.Collapsed;
         FadeInPanel(GamesPanel);
@@ -1922,8 +1665,7 @@ public partial class MainWindow : Window
                 toggle_key           = _s.ToggleKey,
                 follow_key           = _s.FollowKey,
                 monitor_index        = _s.MonitorIndex,
-                update_notifications = _s.UpdateNotifications,
-                last_update_check    = _s.LastUpdateCheck,
+                proof_on_startup     = _s.ProofOnStartup,
                 auto_switch_games    = _s.AutoSwitchGames,
                 auto_revert_profile  = _s.AutoRevertProfile,
                 game_profiles        = _s.GameProfiles,
@@ -1947,8 +1689,7 @@ public partial class MainWindow : Window
             if (r.TryGetProp("toggle_key", out v))                                 _s.ToggleKey = v;
             if (r.TryGetProp("follow_key", out v))                                 _s.FollowKey = v;
             if (r.TryGetProperty("monitor_index", out var mi) && mi.TryGetInt32(out var midx)) _s.MonitorIndex = midx;
-            if (r.TryGetProperty("update_notifications", out var un) && un.ValueKind == JsonValueKind.False) _s.UpdateNotifications = false;
-            if (r.TryGetProp("last_update_check", out v)) _s.LastUpdateCheck = v;
+            if (r.TryGetProperty("proof_on_startup", out var pos) && pos.ValueKind == JsonValueKind.True) _s.ProofOnStartup = true;
 
             if (r.TryGetProperty("auto_switch_games", out var asg) && asg.ValueKind == JsonValueKind.True) _s.AutoSwitchGames = true;
             if (r.TryGetProperty("auto_revert_profile", out var arp) && arp.ValueKind == JsonValueKind.True) _s.AutoRevertProfile = true;
@@ -1979,10 +1720,9 @@ public partial class MainWindow : Window
                 }
             }
 
-            if (UpdateNotifyToggle != null) UpdateNotifyToggle.IsChecked = _s.UpdateNotifications;
+            if (ProofStartupToggle != null) ProofStartupToggle.IsChecked = _s.ProofOnStartup;
             if (ToggleKeyBtn != null) ToggleKeyBtn.Content = string.IsNullOrEmpty(_s.ToggleKey) ? "NONE" : DisplayKey(_s.ToggleKey);
             if (FollowKeyBtn != null) FollowKeyBtn.Content = string.IsNullOrEmpty(_s.FollowKey) ? "NONE" : DisplayKey(_s.FollowKey);
-            UpdateLastCheckedLabel();
         }
         catch { }
     }
