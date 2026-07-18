@@ -1,5 +1,66 @@
 <div align="center">
+# CrosshairY (Offline Fork)
 
+> **This is a fork of the archived [CrosshairY].** It has been modified to be
+> fully offline, with all update-checking, telemetry, socials, and ads removed,
+> plus a new "always-on proof mode" option. The original README follows below.
+
+## Changes made in this fork
+
+### 1. Removed all network connectivity — the app is now 100% offline
+**Why:** The original phoned home on every launch and could send telemetry. I
+wanted a program that never touches the network, so nothing leaves the machine
+and there's no dependency on any server staying up. Updates are now a manual
+"check the repo yourself" affair.
+
+- **Deleted the auto-updater** (`src/Updater.cs`). It used to hit
+  `api.github.com` on every launch, download a new `.exe` to `%TEMP%`, and
+  silently swap the running executable. Gone entirely — no auto-check, no
+  manual "CHECK NOW" button, no update toast/notification.
+- **Deleted the survey/telemetry system** (`src/SurveyWindow.xaml` +
+  `.xaml.cs`). At launch counts 3/7/15/30 it used to pop a survey and **POST
+  the answers to a Supabase edge function** (with a hardcoded endpoint + key).
+  Removed the survey UI, the `launches.dat` launch counter, and all of it.
+- Confirmed offline: the compiled binary contains no trace of the Supabase,
+  GitHub, Discord, or social URLs, and the running app opens **zero network
+  connections**.
+
+### 2. Removed all socials and advertisement
+**Why:** A truly offline, no-bloat tool shouldn't ship promo links or donation
+asks.
+
+- Removed the **"Support" nav button and panel**, including:
+  - **SOCIALS**: Twitter/X, Instagram, YouTube, and Discord links.
+  - **DONATE**: "Support Cute Pets" and "Checkout This Project" links.
+- Removed the now-unused link-opening code and the leftover survey button style.
+
+### 3. Added "Always-on Proof Mode" toggle in Settings
+**Why:** Proof mode (which hides the overlay from screen capture / OBS /
+screenshots) always started **off** and never persisted — so a restart or crash
+would silently leave your crosshair visible to capture. This new option keeps
+you protected automatically.
+
+- New **ALWAYS-ON PROOF MODE** toggle in **Settings** (where the old update
+  toggle was). When enabled, proof mode switches on automatically every launch.
+- The setting persists to `settings.dat` (`proof_on_startup`). The proof hotkey
+  and tray toggle still work to turn it off mid-session.
+
+### Bug fixed while implementing the above
+**Why:** The first version of the always-on feature hid the **main window** but
+not the **crosshair overlay itself** — which is the part that actually needs
+hiding. The overlay applied the setting too early in its lifecycle and then
+reset itself to visible.
+
+- Fixed `CrosshairOverlay.SetProof` to remember the requested state and re-apply
+  it once the window handle exists. Now **both** windows are correctly excluded
+  from capture on startup.
+
+### Files changed
+- **Deleted:** `src/Updater.cs`, `src/SurveyWindow.xaml`, `src/SurveyWindow.xaml.cs`
+- **Modified:** `src/MainWindow.xaml`, `src/MainWindow.xaml.cs`, `src/AppState.cs`,
+  `src/CrosshairOverlay.xaml.cs`, `App.xaml`, `README.md`
+
+---
 # CrosshairY
 
 **A lightweight crosshair overlay for Windows. Always on top, fully customizable, zero bloat.**
